@@ -40,11 +40,11 @@ if choice == "N" or choice == "n":
     accessToken = "Bearer " + accessToken
 
 else:
-    accessToken = "Bearer OGRmMzE1OTMtNDkzMC00MjA3LTliMTAtNjNlYWFlYTdjM2NiYzVhMTRjNmMtY2Y0_P0A1_33f81435-3f53-4d65-8f73-b9f5a8741334"
+    accessToken = "Bearer Y2Q0NWNiZTItZTA3My00NDIwLWJmYjktMWFkYTI2ZGIzNzkyNzMyYzUyOGItMWY2_P0A1_33f81435-3f53-4d65-8f73-b9f5a8741334"
 
 # 3. Provide the URL to the Webex room API.
 r = requests.get(   "https://webexapis.com/v1/rooms",
-                    headers = {"Authorization": accessToken}
+                    headers = {"Authorization": accessToken, "Content-Type":'application/json'}
                 )
 
 #######################################################################################
@@ -136,13 +136,13 @@ while True:
 
 # 7. Record the ISS GPS coordinates and timestamp.
 
-        lat = json_data["results"][0]["latitude"]
-        lng = json_data["results"][0]["longitude"]
-        timestamp = json_data["results"][0]["timestamp"]
+        lat = json_data['iss_position']["latitude"]
+        lng = json_data['iss_position']["longitude"]
+        timestamp = json_data["timestamp"]
         
 # 8. Convert the timestamp epoch value to a human readable date and time.
         # Use the time.ctime function to convert the timestamp to a human readable date and time.
-        timeString = time.ctime()      
+        timeString = time.ctime(timestamp)      
    
 # 9. Provide your MapQuest API consumer key.
     
@@ -154,7 +154,7 @@ while True:
     
 # 10. Provide the URL to the MapQuest Reverse GeoCode API.
     # Get location information using the MapQuest API reverse geocode service using the HTTP GET method
-        r = requests.get("https://www.mapquestapi.com/geocoding/v1/address?", 
+        r = requests.get("https://www.mapquestapi.com/geocoding/v1/reverse", 
                              params = mapsAPIGetParameters
                         )
 
@@ -165,25 +165,26 @@ while True:
                 raise Exception("Incorrect reply from MapQuest API. Status code: {}".format(r.statuscode))
 
 # 11. Store the location received from the MapQuest API in a variable
-        CountryResult = json_data["results"][0]["adminArea1"]
-        StateResult = json_data["results"][0]["adminArea3"]
-        CityResult = json_data["results"][0]["adminArea4"]
-        StreetResult = json_data["results"][0]["street"]
+        CountryResult = json_data["results"][0]["locations"][0]["adminArea1"]
+        StateResult = json_data["results"][0]["locations"][0]["adminArea3"]
+        CityResult = json_data["results"][0]["locations"][0]["adminArea4"]
+        StreetResult = json_data["results"][0]["locations"][0]["street"]
 
         #Find the country name using ISO3611 country code
-        if not CountryResult == "XZ":
+        if not CountryResult == "XZ" and not CountryResult == "":
             CountryResult = countries.get(CountryResult).name
 
 # 12. Complete the code to format the response message.
 #     Example responseMessage result: In Austin, Texas the ISS will fly over on Thu Jun 18 18:42:36 2020 for 242 seconds.
-        #responseMessage = "On {}, the ISS was flying over the following location: \n{} \n{}, {} \n{}\n({}\", {}\")".format(timeString, StreetResult, CityResult, StateResult, CountryResult, lat, lng)
-
+        # responseMessage = "On {}, the ISS was flying over the following location: \n{} \n{}, {} \n{}\n({}\", {}\")".format(timeString, StreetResult, CityResult, StateResult, CountryResult, lat, lng)
         if CountryResult == "XZ":
-            responseMessage = "On {}, the ISS was flying over a body of water at latitude {}° and longitude {}°.".format(timeString, lat, lng)
+            responseMessage = "On {}, the ISS was flying over a body of water at latitude {}° and longitude {}°.".format(timeString, lat, lng)  
         
-# <!!!REPLACEME with if statements to compose the message to display the current ISS location in the Webex Team room!!!>
-#         elif
-#         else
+        elif CountryResult == "United States":
+            responseMessage = "On {}, the ISS was flying over the following location: \n{} \n{}, {} \n{}\n({}\", {}\")".format(timeString, StreetResult, CityResult, StateResult, CountryResult, lat, lng)      
+        
+        else:
+            responseMessage = "On {}, the ISS was flying over the following location: \n{} \n{}, {} \n{}\n({}\", {}\")".format(timeString, StreetResult, CityResult, StateResult, CountryResult, lat, lng)
        
         # print the response message
         print("Sending to Webex: " +responseMessage)
@@ -206,4 +207,3 @@ while True:
                          )
         if not r.status_code == 200:
             raise Exception("Incorrect reply from Webex API. Status code: {}. Text: {}".format(r.status_code, r.text))
-                
